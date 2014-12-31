@@ -13,7 +13,6 @@ struct IOWatcher final
   uint32_t eventFlags;
   uint32_t pendingEventFlags;
   QUEUE eventAwaiterQueues[2];
-  unsigned int refCount;
 
   explicit IOWatcher(int fd);
 };

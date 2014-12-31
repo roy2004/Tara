@@ -48,15 +48,10 @@ IOPoll::~IOPoll()
 void IOPoll::createWatcher(int fd)
 {
   assert(fd >= 0);
-  if (fd < watchers_.size()) {
-    if (watchers_[fd] != nullptr) {
-      IOWatcher *watcher = watchers_[fd];
-      ++watcher->refCount;
-      return;
-    }
-  } else {
+  if (fd >= watchers_.size()) {
     watchers_.resize(fd + 1, nullptr);
   }
+  assert(watchers_[fd] == nullptr);
   auto watcher = new (watcherMemoryPool_.allocateBlock()) IOWatcher(fd);
   QUEUE_INIT(&watcher->queueItem);
   watchers_[fd] = watcher;
@@ -66,10 +61,6 @@ void IOPoll::destroyWatcher(int fd)
 {
   assert(watcherExists(fd));
   IOWatcher *watcher = watchers_[fd];
-  if (watcher->refCount != 0) {
-    --watcher->refCount;
-    return;
-  }
   watchers_[fd] = nullptr;
   if (!QUEUE_EMPTY(&watcher->queueItem)) {
     QUEUE_REMOVE(&watcher->queueItem);
