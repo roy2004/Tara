@@ -14,7 +14,7 @@
 
 namespace Tara {
 
-thread_local Scheduler *TheScheduler;
+extern thread_local Scheduler *const TheScheduler;
 
 void Call(const Coroutine &coroutine)
 {
@@ -98,19 +98,6 @@ int Socket(int domain, int type, int protocol)
     TARA_FATALITY_LOG("No scheduler");
   }
   int fd = socket(domain, type | SOCK_NONBLOCK, protocol);
-  if (fd < 0) {
-    return -1;
-  }
-  TheScheduler->watchIO(fd);
-  return fd;
-}
-
-int EventFD(unsigned int initval, int flags)
-{
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
-  int fd = eventfd(initval, flags | EFD_NONBLOCK);
   if (fd < 0) {
     return -1;
   }
@@ -265,6 +252,136 @@ int Connect(int fd, const sockaddr *addr, socklen_t addrlen, int timeout)
     }
   }
   return 0;
+}
+
+ssize_t Recv(int fd, void *buf, size_t buflen, int flags, int timeout)
+{
+  if (TheScheduler == nullptr) {
+    TARA_FATALITY_LOG("No scheduler");
+  }
+  if (!TheScheduler->ioIsWatched(fd)) {
+    errno = EBADF;
+    return -1;
+  }
+  ssize_t n;
+  for (;;) {
+    n = recv(fd, buf, buflen, flags);
+    if (n >= 0) {
+      break;
+    }
+    if (errno == EWOULDBLOCK) {
+      if (TheScheduler->awaitIOEvent(fd, IOEvent::Readability, timeout) < 0) {
+        break;
+      }
+      continue;
+    }
+    if (errno == EINTR) {
+      continue;
+    }
+    break;
+  }
+  if (n < 0) {
+    return -1;
+  }
+  return n;
+}
+
+ssize_t Send(int fd, const void *buf, size_t buflen, int flags, int timeout)
+{
+  if (TheScheduler == nullptr) {
+    TARA_FATALITY_LOG("No scheduler");
+  }
+  if (!TheScheduler->ioIsWatched(fd)) {
+    errno = EBADF;
+    return -1;
+  }
+  ssize_t n;
+  for (;;) {
+    n = send(fd, buf, buflen, flags);
+    if (n >= 0) {
+      break;
+    }
+    if (errno == EWOULDBLOCK) {
+      if (TheScheduler->awaitIOEvent(fd, IOEvent::Writability, timeout) < 0) {
+        break;
+      }
+      continue;
+    }
+    if (errno == EINTR) {
+      continue;
+    }
+    break;
+  }
+  if (n < 0) {
+    return -1;
+  }
+  return n;
+}
+
+ssize_t RecvFrom(int fd, void *buf, size_t buflen, int flags, sockaddr *addr,
+                 socklen_t *addrlen, int timeout)
+{
+  if (TheScheduler == nullptr) {
+    TARA_FATALITY_LOG("No scheduler");
+  }
+  if (!TheScheduler->ioIsWatched(fd)) {
+    errno = EBADF;
+    return -1;
+  }
+  ssize_t n;
+  for (;;) {
+    n = recvfrom(fd, buf, buflen, flags, addr, addrlen);
+    if (n >= 0) {
+      break;
+    }
+    if (errno == EWOULDBLOCK) {
+      if (TheScheduler->awaitIOEvent(fd, IOEvent::Readability, timeout) < 0) {
+        break;
+      }
+      continue;
+    }
+    if (errno == EINTR) {
+      continue;
+    }
+    break;
+  }
+  if (n < 0) {
+    return -1;
+  }
+  return n;
+}
+
+ssize_t SendTo(int fd, const void *buf, size_t buflen, int flags,
+               const sockaddr *addr, socklen_t addrlen, int timeout)
+{
+  if (TheScheduler == nullptr) {
+    TARA_FATALITY_LOG("No scheduler");
+  }
+  if (!TheScheduler->ioIsWatched(fd)) {
+    errno = EBADF;
+    return -1;
+  }
+  ssize_t n;
+  for (;;) {
+    n = sendto(fd, buf, buflen, flags, addr, addrlen);
+    if (n >= 0) {
+      break;
+    }
+    if (errno == EWOULDBLOCK) {
+      if (TheScheduler->awaitIOEvent(fd, IOEvent::Writability, timeout) < 0) {
+        break;
+      }
+      continue;
+    }
+    if (errno == EINTR) {
+      continue;
+    }
+    break;
+  }
+  if (n < 0) {
+    return -1;
+  }
+  return n;
 }
 
 } // namespace Tara

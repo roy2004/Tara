@@ -2,7 +2,7 @@
 
 namespace Tara {
 
-extern thread_local Scheduler *TheScheduler;
+thread_local Scheduler *TheScheduler;
 
 } // namespace Tara
 
