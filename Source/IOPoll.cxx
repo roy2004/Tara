@@ -20,6 +20,8 @@ const uint32_t IOEventFlags[] = {
   [static_cast<int>(IOEvent::Writability)] = EPOLLOUT
 };
 
+uint32_t NextPowerOfTwo(uint32_t value);
+
 } // namespace
 
 IOPoll::IOPoll()
@@ -49,7 +51,7 @@ void IOPoll::createWatcher(int fd)
 {
   assert(fd >= 0);
   if (fd >= watchers_.size()) {
-    watchers_.resize(fd + 1, nullptr);
+    watchers_.resize(NextPowerOfTwo(fd + 1), nullptr);
   }
   assert(watchers_[fd] == nullptr);
   auto watcher = new (watcherMemoryPool_.allocateBlock()) IOWatcher(fd);
@@ -185,5 +187,21 @@ bool IOPoll::waitForEvents(int timeout, QUEUE *eventAwaiterQueue)
   }
   return true;
 }
+
+namespace {
+
+uint32_t NextPowerOfTwo(uint32_t value)
+{
+  --value;
+  value |= value >> 1;
+  value |= value >> 2;
+  value |= value >> 4;
+  value |= value >> 8;
+  value |= value >> 16;
+  ++value;
+  return value;
+}
+
+} // namespace
 
 } // namespace Tara
