@@ -7,16 +7,32 @@
 #include <utility>
 #
 #include "Error.hxx"
-#include "Fiber.hxx"
 #include "Log.hxx"
 #include "RunFiber.hxx"
-#include "UnwindStack.hxx"
+#include "TimerItem.hxx"
 
 #define TARA_FIBER_SIZE 65536
 
 namespace Tara {
 
+struct Fiber final
+{
+  QUEUE queueItem;
+  TimerItem timerItem;
+  const Coroutine coroutine;
+  void *const stack;
+  jmp_buf *context;
+  int status;
+  int fd;
+
+  Fiber(const Coroutine &coroutine, void *stack);
+  Fiber(Coroutine &&coroutine, void *stack);
+};
+
 namespace {
+
+class UnwindStack final
+{};
 
 Fiber *CreateFiber(const Coroutine &coroutine);
 Fiber *CreateFiber(Coroutine &&coroutine);
@@ -235,6 +251,21 @@ int Scheduler::awaitIOEvent(int fd, IOEvent ioEvent, int timeout)
   auto fiber = QUEUE_DATA(QUEUE_HEAD(&readyFiberQueue_), Fiber, queueItem);
   QUEUE_REMOVE(&fiber->queueItem);
   executeFiber(fiber);
+}
+
+Fiber::Fiber(const Coroutine &coroutine, void *stack)
+  : coroutine(coroutine), stack(stack), context(nullptr), status(0), fd(-1)
+{
+  assert(this->coroutine != nullptr);
+  assert(this->stack != nullptr);
+}
+
+Fiber::Fiber(Coroutine &&coroutine, void *stack)
+  : coroutine(std::move(coroutine)), stack(stack), context(nullptr),
+    status(0), fd(-1)
+{
+  assert(this->coroutine != nullptr);
+  assert(this->stack != nullptr);
 }
 
 namespace {

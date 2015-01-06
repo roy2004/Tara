@@ -1,7 +1,5 @@
 Error.cxx
-Fiber.cxx
 IOPoll.cxx
-IOWatcher.cxx
 Log.cxx
 Main.cxx
 MemoryPool.cxx

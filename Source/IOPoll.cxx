@@ -8,10 +8,20 @@
 #
 #include "Error.hxx"
 #include "IOEvent.hxx"
-#include "IOWatcher.hxx"
 #include "Log.hxx"
 
 namespace Tara {
+
+struct IOWatcher final
+{
+  QUEUE queueItem;
+  const int fd;
+  uint32_t eventFlags;
+  uint32_t pendingEventFlags;
+  QUEUE eventAwaiterQueues[2];
+
+  explicit IOWatcher(int fd);
+};
 
 namespace {
 
@@ -186,6 +196,13 @@ bool IOPoll::waitForEvents(int timeout, QUEUE *eventAwaiterQueue)
     }
   }
   return true;
+}
+
+IOWatcher::IOWatcher(int fd)
+  : fd(fd), eventFlags(0), pendingEventFlags(0)
+{
+  QUEUE_INIT(&this->eventAwaiterQueues[0]);
+  QUEUE_INIT(&this->eventAwaiterQueues[1]);
 }
 
 namespace {
