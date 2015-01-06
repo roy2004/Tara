@@ -108,14 +108,14 @@ no_ready_fiber:
     {
       TimerItem *buffer[1024];
       unsigned int n = timer_.removeDueItems(buffer, TARA_LENGTH_OF(buffer));
-      for (int i = 0; i < n; ++i) {
+      for (int i = n - 1; i >= 0; --i) {
         auto fiber = TARA_CONTAINER_OF(buffer[i], Fiber, timerItem);
         if (fiber->fd >= 0) {
           ioPoll_.removeEventAwaiter(fiber->queueItem, fiber->fd);
           fiber->fd = -1;
           fiber->status = -ETIME;
         }
-        QUEUE_INSERT_TAIL(&readyFiberQueue_, &fiber->queueItem);
+        QUEUE_INSERT_HEAD(&readyFiberQueue_, &fiber->queueItem);
       }
     }
   }

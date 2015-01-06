@@ -8,12 +8,12 @@ build: $(BUILD_DIR)/a.out
 clean:
 	$(RM) $(BUILD_DIR)/*
 
-ifneq ($(MAKECMDGOALS),clean)
--include $(patsubst $(SOURCE_DIR)/%.cxx,$(BUILD_DIR)/%.d,$(wildcard $(SOURCE_DIR)/*.cxx))
+ifneq ($(MAKECMDGOALS), clean)
+-include $(patsubst %.cxx, $(BUILD_DIR)/%.d, $(filter %.cxx, $(shell cat SourceList)))
 endif
 
 $(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.cxx
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/a.out: $(patsubst $(SOURCE_DIR)/%.cxx,$(BUILD_DIR)/%.o,$(wildcard $(SOURCE_DIR)/*.cxx))
+$(BUILD_DIR)/a.out: $(patsubst %.cxx, $(BUILD_DIR)/%.o, $(filter %.cxx, $(shell cat SourceList)))
 	$(CXX) $(LDFLAGS) -o $@ $^
