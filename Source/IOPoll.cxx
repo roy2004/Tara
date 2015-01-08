@@ -32,29 +32,21 @@ const uint32_t IOEventFlags[] = {
 
 uint32_t NextPowerOfTwo(uint32_t value);
 
+int xepoll_create1(int flags);
+void xepoll_ctl(int epfd, int op, int fd, epoll_event *event);
+void xclose(int fd);
+
 } // namespace
 
 IOPoll::IOPoll()
-  : fd_(epoll_create1(0)), watcherMemoryPool_(65536, sizeof(IOWatcher))
+  : fd_(xepoll_create1(0)), watcherMemoryPool_(65536, sizeof(IOWatcher))
 {
-  if (fd_ < 0) {
-    TARA_FATALITY_LOG("epoll_create1 failed: ", Error(errno));
-  }
   QUEUE_INIT(&dirtyWatcherQueue_);
 }
 
 IOPoll::~IOPoll()
 {
-  int result;
-  do {
-    result = close(fd_);
-    if (result >= 0) {
-      break;
-    }
-  } while (errno == EINTR);
-  if (result < 0) {
-    TARA_ERROR_LOG("close failed: ", Error(errno));
-  }
+  xclose(fd_);
 }
 
 void IOPoll::createWatcher(int fd)
@@ -76,6 +68,9 @@ void IOPoll::destroyWatcher(int fd)
   watchers_[fd] = nullptr;
   if (!QUEUE_EMPTY(&watcher->queueItem)) {
     QUEUE_REMOVE(&watcher->queueItem);
+  }
+  if (watcher->eventFlags != 0) {
+    xepoll_ctl(fd_, EPOLL_CTL_DEL, watcher->fd, nullptr);
   }
   watcher->~IOWatcher();
   watcherMemoryPool_.freeBlock(watcher);
@@ -162,9 +157,7 @@ bool IOPoll::waitForEvents(int timeout, QUEUE *eventAwaiterQueue)
       epoll_event event;
       event.events = watcher->pendingEventFlags;
       event.data.ptr = watcher;
-      if (epoll_ctl(fd_, op, watcher->fd, &event) < 0) {
-        TARA_FATALITY_LOG("epoll_ctl failed: ", Error(errno));
-      }
+      xepoll_ctl(fd_, op, watcher->fd, &event);
       watcher->eventFlags = watcher->pendingEventFlags;
     } while (q != &dirtyWatcherQueue_);
     QUEUE_INIT(&dirtyWatcherQueue_);
@@ -217,6 +210,36 @@ uint32_t NextPowerOfTwo(uint32_t value)
   value |= value >> 16;
   ++value;
   return value;
+}
+
+int xepoll_create1(int flags)
+{
+  int fd = epoll_create1(flags);
+  if (fd < 0) {
+    TARA_FATALITY_LOG("epoll_create1 failed: ", Error(errno));
+  }
+  return fd;
+}
+
+void xepoll_ctl(int epfd, int op, int fd, epoll_event *event)
+{
+  if (epoll_ctl(epfd, op, fd, event) < 0) {
+    TARA_FATALITY_LOG("epoll_ctl failed: ", Error(errno));
+  }
+}
+
+void xclose(int fd)
+{
+  int result;
+  do {
+    result = close(fd);
+    if (result >= 0) {
+      break;
+    }
+  } while (errno == EINTR);
+  if (result < 0) {
+    TARA_FATALITY_LOG("close failed: ", Error(errno));
+  }
 }
 
 } // namespace

@@ -1,26 +1,42 @@
 #pragma once
 
+#include <pthread.h>
+#
+#include <functional>
+#
 #include "libuv/queue.h"
 #
-#include "TaskFunc.hxx"
 #include "Utility.hxx"
 
 namespace Tara {
 
-using TaskFunc = std::function<void ()>;
+class Scheduler;
+
+using Task = std::function<void ()>;
 
 class Async final
 {
   TARA_DISALLOW_COPY(Async);
 
 public:
-  Async();
+  explicit Async(Scheduler *scheduler);
+  ~Async();
 
-  void awaitTask(const TaskFunc *taskFunc);
+  void awaitTasks(const Task *tasks, unsigned int taskCount);
 
 private:
-  QUEUE pendingTaskQueue_;
-  QUEUE completedTaskQueue_;
+  static void Worker(Async *async) { async->doWork(); }
+
+  Scheduler *const scheduler_;
+  const int fd_;
+  bool workIsDone_;
+  unsigned int jobCount_;
+  QUEUE jobQueues_[2];
+  pthread_mutex_t mutexes_[2];
+  pthread_cond_t condition_;
+  pthread_t threads_[4];
+
+  void doWork();
 };
 
 } // namespace Tara

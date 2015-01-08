@@ -36,6 +36,8 @@ public:
   [[noreturn]] void killCurrentFiber();
   void unwatchIO(int fd);
   int awaitIOEvent(int fd, IOEvent ioEvent, int timeout);
+  void suspendCurrentFiber();
+  void resumeFiber(Fiber *fiber);
 
 private:
   unsigned int fiberCount_;

@@ -4,23 +4,31 @@
 #include <stdio.h>
 #
 #include "Runtime.hxx"
+#include "Async.hxx"
+
+namespace Tara {
+
+extern thread_local Scheduler *const TheScheduler;
+
+}
+
+using namespace Tara;
 
 int Main(int argc, char **argv)
 {
-  Tara::Call([] () {
-    Tara::Yield();
-    try {
-      throw 1;
-    } catch (int x) {
-      printf("1: %d\n", x);
-    }
+  (void)argc;
+  (void)argv;
+  Async async(TheScheduler);
+
+  Call([] {
+    puts("2");
   });
-  Tara::Call([] () {
-    try {
-      Tara::Yield();
-      throw 2;
-    } catch (int x) {
-      printf("2: %d\n", x);
-    }
+  Task task([] {
+    puts("3");
   });
+  puts("1");
+  async.awaitTasks(&task, 1);
+  puts("4");
+
+  return 0;
 }

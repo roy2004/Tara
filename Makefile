@@ -1,7 +1,8 @@
 BUILD_DIR = Build
 SOURCE_DIR = Source
 CPPFLAGS = -MMD -MT $@ -MF $(BUILD_DIR)/$*.d
-CXXFLAGS = -std=c++11 -Wno-invalid-offsetof
+CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -Wno-sign-compare -Wno-invalid-offsetof
+LDFLAGS = -lpthread
 
 build: $(BUILD_DIR)/a.out
 

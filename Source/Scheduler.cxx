@@ -39,6 +39,9 @@ Fiber *CreateFiber(Coroutine &&coroutine);
 void DestroyFiber(Fiber *fiber);
 void FiberStart(Scheduler *scheduler) noexcept;
 
+void *xmmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
+void xmunmap(void *addr,  size_t len);
+
 } // namespace
 
 Scheduler::Scheduler()
@@ -217,6 +220,7 @@ void Scheduler::unwatchIO(int fd)
   QUEUE fiberQueue;
   QUEUE_INIT(&fiberQueue);
   ioPoll_.removeEventAwaiters(fd, &fiberQueue);
+  ioPoll_.destroyWatcher(fd);
   QUEUE *q;
   QUEUE_FOREACH(q, &fiberQueue) {
     auto fiber = QUEUE_DATA(q, Fiber, queueItem);
@@ -253,6 +257,29 @@ int Scheduler::awaitIOEvent(int fd, IOEvent ioEvent, int timeout)
   executeFiber(fiber);
 }
 
+void Scheduler::suspendCurrentFiber()
+{
+  assert(runningFiber_ != nullptr);
+  jmp_buf context;
+  if (setjmp(context) != 0) {
+    return;
+  }
+  runningFiber_->context = &context;
+  runningFiber_->status = 1;
+  if (QUEUE_EMPTY(&readyFiberQueue_)) {
+    execute();
+  }
+  auto fiber = QUEUE_DATA(QUEUE_HEAD(&readyFiberQueue_), Fiber, queueItem);
+  QUEUE_REMOVE(&fiber->queueItem);
+  executeFiber(fiber);
+}
+
+void Scheduler::resumeFiber(Fiber *fiber)
+{
+  assert(fiber != nullptr);
+  QUEUE_INSERT_TAIL(&readyFiberQueue_, &fiber->queueItem);
+}
+
 Fiber::Fiber(const Coroutine &coroutine, void *stack)
   : coroutine(coroutine), stack(stack), context(nullptr), status(0), fd(-1)
 {
@@ -272,14 +299,11 @@ namespace {
 
 Fiber *CreateFiber(const Coroutine &coroutine)
 {
-  auto region = static_cast<char *>(mmap(nullptr, TARA_FIBER_SIZE,
-                                         PROT_READ | PROT_WRITE,
-                                         MAP_PRIVATE | MAP_ANONYMOUS
-                                                     | MAP_GROWSDOWN
-                                                     | MAP_STACK, -1, 0));
-  if (region == nullptr) {
-    TARA_FATALITY_LOG("mmap failed: ", Error(errno));
-  }
+  auto region = static_cast<char *>(xmmap(nullptr, TARA_FIBER_SIZE,
+                                          PROT_READ | PROT_WRITE,
+                                          MAP_PRIVATE | MAP_ANONYMOUS
+                                                      | MAP_GROWSDOWN
+                                                      | MAP_STACK, -1, 0));
   auto fiber = reinterpret_cast<Fiber *>(region + TARA_FIBER_SIZE
                                                 - sizeof(Fiber));
   void *fiberStack = fiber;
@@ -289,14 +313,11 @@ Fiber *CreateFiber(const Coroutine &coroutine)
 
 Fiber *CreateFiber(Coroutine &&coroutine)
 {
-  auto region = static_cast<char *>(mmap(nullptr, TARA_FIBER_SIZE,
-                                         PROT_READ | PROT_WRITE,
-                                         MAP_PRIVATE | MAP_ANONYMOUS
-                                                     | MAP_GROWSDOWN
-                                                     | MAP_STACK, -1, 0));
-  if (region == nullptr) {
-    TARA_FATALITY_LOG("mmap failed: ", Error(errno));
-  }
+  auto region = static_cast<char *>(xmmap(nullptr, TARA_FIBER_SIZE,
+                                          PROT_READ | PROT_WRITE,
+                                          MAP_PRIVATE | MAP_ANONYMOUS
+                                                      | MAP_GROWSDOWN
+                                                      | MAP_STACK, -1, 0));
   auto fiber = reinterpret_cast<Fiber *>(region + TARA_FIBER_SIZE
                                                 - sizeof(Fiber));
   void *fiberStack = fiber;
@@ -309,9 +330,7 @@ void DestroyFiber(Fiber *fiber)
   assert(fiber != nullptr);
   fiber->~Fiber();
   auto region = reinterpret_cast<char *>(fiber + 1) - TARA_FIBER_SIZE;
-  if (munmap(region, TARA_FIBER_SIZE) < 0) {
-    TARA_ERROR_LOG("munmap failed: ", Error(errno));
-  }
+  xmunmap(region, TARA_FIBER_SIZE);
 }
 
 void FiberStart(Scheduler *scheduler) noexcept
@@ -322,6 +341,22 @@ void FiberStart(Scheduler *scheduler) noexcept
     fiber->coroutine();
   } catch (const UnwindStack &) {}
   scheduler->killCurrentFiber();
+}
+
+void *xmmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
+{
+  void *p = mmap(addr, len, prot, flags, fd, offset);
+  if (p == MAP_FAILED) {
+    TARA_FATALITY_LOG("mmap failed: ", Error(errno));
+  }
+  return p;
+}
+
+void xmunmap(void *addr,  size_t len)
+{
+  if (munmap(addr, len) < 0) {
+    TARA_FATALITY_LOG("munmap failed: ", Error(errno));
+  }
 }
 
 } // namespace

@@ -14,6 +14,7 @@ namespace {
 
 uint64_t GetTime(void);
 
+void xclock_gettime(clockid_t clock_id, timespec *tp);
 int heap_compare(const heap_node* a, const heap_node* b);
 
 } // namespace
@@ -86,10 +87,15 @@ namespace {
 uint64_t GetTime(void)
 {
   timespec time;
-  if (clock_gettime(CLOCK_MONOTONIC_COARSE, &time) < 0) {
+  xclock_gettime(CLOCK_MONOTONIC_COARSE, &time);
+  return time.tv_sec * 1000 + time.tv_nsec / 1000000;
+}
+
+void xclock_gettime(clockid_t clock_id, timespec *tp)
+{
+  if (clock_gettime(clock_id, tp) < 0) {
     TARA_FATALITY_LOG("clock_gettime failed: ", Error(errno));
   }
-  return time.tv_sec * 1000 + time.tv_nsec / 1000000;
 }
 
 int heap_compare(const heap_node* a, const heap_node* b)

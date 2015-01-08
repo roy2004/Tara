@@ -64,7 +64,7 @@ void MemoryPool::increaseBlocks()
   auto block = TARA_CONTAINER_OF(chunk->base + chunkSize_ - blockSize_,
                                  MemoryBlock, base);
   lastBlock_ = block;
-  for (; ; ) {
+  for (;;) {
     auto blockPrev = TARA_CONTAINER_OF(block->base - blockSize_, MemoryBlock,
                                        base);
     if (blockPrev->base < chunk->base) {
