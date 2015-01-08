@@ -19,16 +19,22 @@ int Main(int argc, char **argv)
   (void)argc;
   (void)argv;
   Async async(TheScheduler);
-
-  Call([] {
-    puts("2");
+  Call([&async] {
+    int i = 0;
+    Task task1([&i] {
+      printf("[1] = %d\n", ++i);
+    });
+    for (;;)
+      async.awaitTask(&task1);
   });
-  Task task([] {
-    puts("3");
+  Call([&async] {
+    int i = 0;
+    Task task2([&i] {
+      printf("[2] = %d\n", ++i);
+    });
+    for (;;)
+      async.awaitTask(&task2);
   });
-  puts("1");
-  async.awaitTasks(&task, 1);
-  puts("4");
-
+  Sleep(-1);
   return 0;
 }

@@ -276,7 +276,9 @@ void Scheduler::suspendCurrentFiber()
 
 void Scheduler::resumeFiber(Fiber *fiber)
 {
+  assert(runningFiber_ != nullptr);
   assert(fiber != nullptr);
+  assert(fiber != runningFiber_);
   QUEUE_INSERT_TAIL(&readyFiberQueue_, &fiber->queueItem);
 }
 

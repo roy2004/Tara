@@ -28,4 +28,9 @@ ssize_t RecvFrom(int fd, void *buf, size_t buflen, int flags, sockaddr *addr,
 ssize_t SendTo(int fd, const void *buf, size_t buflen, int flags,
                const sockaddr *addr, socklen_t addrlen, int timeout);
 
+int OpenAsync(const char *path, int flags, mode_t mode = 0);
+int CloseAsync(int fd);
+ssize_t ReadAsync(int fd, void *buf, size_t buflen);
+ssize_t WriteAsync(int fd, const void *buf, size_t buflen);
+
 } // namespace Tara

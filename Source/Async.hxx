@@ -22,6 +22,8 @@ public:
   explicit Async(Scheduler *scheduler);
   ~Async();
 
+  void awaitTask(const Task *task) { awaitTasks(task, 1); }
+
   void awaitTasks(const Task *tasks, unsigned int taskCount);
 
 private:
