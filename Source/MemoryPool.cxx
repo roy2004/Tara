@@ -4,7 +4,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #
-#include "Error.hxx"
 #include "Log.hxx"
 
 namespace Tara {
@@ -83,7 +82,7 @@ void MemoryPool::increaseChunks()
   }
   auto chunk = static_cast<MemoryChunk *>(malloc(chunkSize_));
   if (chunk == nullptr) {
-    TARA_FATALITY_LOG("malloc failed: ", Error(errno));
+    TARA_FATALITY_LOG("malloc failed");
   }
   chunkVector_[chunkCount_++] = chunk;
 }
@@ -95,7 +94,7 @@ void MemoryPool::expandChunkVector()
                  (realloc(chunkVector_,
                           chunkVectorLength_ * sizeof *chunkVector_));
   if (chunkVector_ == nullptr) {
-    TARA_FATALITY_LOG("realloc failed: ", Error(errno));
+    TARA_FATALITY_LOG("realloc failed");
   }
 }
 

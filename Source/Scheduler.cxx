@@ -1,12 +1,10 @@
 #include "Scheduler.hxx"
 
-#include <sys/mman.h>
-#
 #include <errno.h>
+#include <stdlib.h>
 #
 #include <utility>
 #
-#include "Error.hxx"
 #include "Log.hxx"
 #include "RunFiber.hxx"
 #include "TimerItem.hxx"
@@ -39,13 +37,11 @@ Fiber *CreateFiber(Coroutine &&coroutine);
 void DestroyFiber(Fiber *fiber);
 void FiberStart(Scheduler *scheduler) noexcept;
 
-void *xmmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);
-void xmunmap(void *addr,  size_t len);
-
 } // namespace
 
 Scheduler::Scheduler()
-  : fiberCount_(0), context_(nullptr), status_(0), runningFiber_(nullptr)
+  : fiberCount_(0), context_(nullptr), status_(0), runningFiber_(nullptr),
+    async_(this)
 {
   QUEUE_INIT(&readyFiberQueue_);
   QUEUE_INIT(&deadFiberQueue_);
@@ -301,11 +297,11 @@ namespace {
 
 Fiber *CreateFiber(const Coroutine &coroutine)
 {
-  auto region = static_cast<char *>(xmmap(nullptr, TARA_FIBER_SIZE,
-                                          PROT_READ | PROT_WRITE,
-                                          MAP_PRIVATE | MAP_ANONYMOUS
-                                                      | MAP_GROWSDOWN
-                                                      | MAP_STACK, -1, 0));
+  auto region = static_cast<char *>(malloc(TARA_FIBER_SIZE));
+  if (region == nullptr) {
+    assert(TARA_FIBER_SIZE != 0);
+    TARA_FATALITY_LOG("malloc failed");
+  }
   auto fiber = reinterpret_cast<Fiber *>(region + TARA_FIBER_SIZE
                                                 - sizeof(Fiber));
   void *fiberStack = fiber;
@@ -315,11 +311,11 @@ Fiber *CreateFiber(const Coroutine &coroutine)
 
 Fiber *CreateFiber(Coroutine &&coroutine)
 {
-  auto region = static_cast<char *>(xmmap(nullptr, TARA_FIBER_SIZE,
-                                          PROT_READ | PROT_WRITE,
-                                          MAP_PRIVATE | MAP_ANONYMOUS
-                                                      | MAP_GROWSDOWN
-                                                      | MAP_STACK, -1, 0));
+  auto region = static_cast<char *>(malloc(TARA_FIBER_SIZE));
+  if (region == nullptr) {
+    assert(TARA_FIBER_SIZE != 0);
+    TARA_FATALITY_LOG("malloc failed");
+  }
   auto fiber = reinterpret_cast<Fiber *>(region + TARA_FIBER_SIZE
                                                 - sizeof(Fiber));
   void *fiberStack = fiber;
@@ -332,7 +328,7 @@ void DestroyFiber(Fiber *fiber)
   assert(fiber != nullptr);
   fiber->~Fiber();
   auto region = reinterpret_cast<char *>(fiber + 1) - TARA_FIBER_SIZE;
-  xmunmap(region, TARA_FIBER_SIZE);
+  free(region);
 }
 
 void FiberStart(Scheduler *scheduler) noexcept
@@ -343,22 +339,6 @@ void FiberStart(Scheduler *scheduler) noexcept
     fiber->coroutine();
   } catch (const UnwindStack &) {}
   scheduler->killCurrentFiber();
-}
-
-void *xmmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset)
-{
-  void *p = mmap(addr, len, prot, flags, fd, offset);
-  if (p == MAP_FAILED) {
-    TARA_FATALITY_LOG("mmap failed: ", Error(errno));
-  }
-  return p;
-}
-
-void xmunmap(void *addr,  size_t len)
-{
-  if (munmap(addr, len) < 0) {
-    TARA_FATALITY_LOG("munmap failed: ", Error(errno));
-  }
 }
 
 } // namespace

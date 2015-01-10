@@ -5,6 +5,7 @@
 #
 #include "libuv/queue.h"
 #
+#include "Async.hxx"
 #include "Coroutine.hxx"
 #include "IOPoll.hxx"
 #include "Timer.hxx"
@@ -26,6 +27,7 @@ public:
                                    return runningFiber_; }
   bool ioIsWatched(int fd) const { return ioPoll_.watcherExists(fd); }
   void watchIO(int fd) { ioPoll_.createWatcher(fd); }
+  void awaitTask(const Task *task) { async_.awaitTask(task); }
 
   void callCoroutine(const Coroutine &coroutine);
   void callCoroutine(Coroutine &&coroutine);
@@ -48,6 +50,7 @@ private:
   QUEUE deadFiberQueue_;
   IOPoll ioPoll_;
   Timer timer_;
+  Async async_;
 
   [[noreturn]] void execute();
   [[noreturn]] void executeFiber(Fiber *fiber);

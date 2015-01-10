@@ -4,7 +4,7 @@
 #include <stdio.h>
 #
 #include "Runtime.hxx"
-#include "Async.hxx"
+#include "Scheduler.hxx"
 
 namespace Tara {
 
@@ -18,23 +18,15 @@ int Main(int argc, char **argv)
 {
   (void)argc;
   (void)argv;
-  Async async(TheScheduler);
-  Call([&async] {
-    int i = 0;
-    Task task1([&i] {
-      printf("[1] = %d\n", ++i);
+  for (int i = 0; ; ++i) {
+    Task task([i] {
+      printf("%d\n", i);
     });
-    for (;;)
-      async.awaitTask(&task1);
-  });
-  Call([&async] {
-    int i = 0;
-    Task task2([&i] {
-      printf("[2] = %d\n", ++i);
-    });
-    for (;;)
-      async.awaitTask(&task2);
-  });
+    TheScheduler->awaitTask(&task);
+  }
+/*  for (int i = 0; ; ++i) {
+    printf("%d\n", i);
+  };*/
   Sleep(-1);
   return 0;
 }

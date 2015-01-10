@@ -2,21 +2,17 @@
 
 #include <stdlib.h>
 #
-#include <ostream>
+#include <sstream>
 #
 #include "Utility.hxx"
 
-#define TARA_LOG(LEVEL, ...)                        \
-  do {                                              \
-    const Tara::Log *taraLog = Tara::Log::Get();    \
-    if (static_cast<int>(Tara::Log::Level::LEVEL) < \
-        static_cast<int>(taraLog->getLevel())) {    \
-      break;                                        \
-    }                                               \
-    *taraLog, #LEVEL       " : "                    \
-            , __FILE__     " : "                    \
-            , __LINE__   , " : "                    \
-            , __VA_ARGS__, std::endl;               \
+#define TARA_LOG(LEVEL, ...)                                              \
+  do {                                                                    \
+    if (static_cast<int>(Tara::Log::Level::LEVEL) <                       \
+        static_cast<int>(Tara::Log::GetLevel())) {                        \
+      break;                                                              \
+    }                                                                     \
+    Tara::Log(), #LEVEL ": ", __FILE__ ": ", __LINE__, ": ", __VA_ARGS__; \
   } while (false)
 
 #ifndef NDEBUG
@@ -26,8 +22,8 @@
 #define TARA_DEBUGGING_LOG(...)
 #endif
 
-#define TARA_INFORMATION_LOG(...) \
-  TARA_LOG(Information, __VA_ARGS__)
+#define TARA_INFORMING_LOG(...) \
+  TARA_LOG(Informing, __VA_ARGS__)
 
 #define TARA_WARNING_LOG(...) \
   TARA_LOG(Warning, __VA_ARGS__)
@@ -49,36 +45,29 @@ public:
   enum class Level
   {
     Debugging,
-    Information,
+    Informing,
     Warning,
     Error,
     Fatality
   };
 
-  static Log *Get();
+  static Level GetLevel() { return Level_; }
+  static void SetLevel(Level level) { Level_ = level; }
+
+  Log();
+  ~Log();
 
   template <typename TYPE>
-  const Log &operator,(const TYPE &value) const
+  Log &operator,(const TYPE &value)
   {
-    *outputStream_ << value;
+    outputStream_ << value;
     return *this;
   }
-
-  const Log &operator,(std::ostream &(*outputStreamManipulator)
-                                     (std::ostream &)) const
-  {
-    *outputStream_ << outputStreamManipulator;
-    return *this;
-  }
-
-  Level getLevel() const { return level_; }
-  void setLevel(Level level) { level_ = level; }
 
 private:
-  Level level_;
-  std::ostream *const outputStream_;
+  static Level Level_;
 
-  Log(Level level, std::ostream *outputStream);
+  std::ostringstream outputStream_;
 };
 
 } // namespace Tara

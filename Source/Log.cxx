@@ -1,21 +1,19 @@
 #include "Log.hxx"
 
-#include <assert.h>
-#
-#include <iostream>
+#include <stdio.h>
 
 namespace Tara {
 
-Log *Log::Get()
-{
-  static Log instance(Level::Debugging, &std::clog);
-  return &instance;
-}
+Log::Level Log::Level_(Level::Debugging);
 
-Log::Log(Level level, std::ostream *outputStream)
-  : level_(level), outputStream_(outputStream)
+Log::Log()
+  : outputStream_(std::ostringstream::ate)
+{}
+
+Log::~Log()
 {
-  assert(outputStream_ != nullptr);
+  outputStream_.put('\n');
+  fputs(outputStream_.str().c_str(), stderr);
 }
 
 } // namespace Tara
