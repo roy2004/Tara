@@ -103,6 +103,7 @@ int Close(int fd)
     errno = EBADF;
     return -1;
   }
+  TheScheduler->unwatchIO(fd);
   int result;
   do {
     result = close(fd);
@@ -111,10 +112,8 @@ int Close(int fd)
     }
   } while (errno == EINTR);
   if (result < 0) {
-    TheScheduler->unwatchIO(fd);
     return -1;
   }
-  TheScheduler->unwatchIO(fd);
   return 0;
 }
 
@@ -187,7 +186,7 @@ int Accept4(int fd, sockaddr *addr, socklen_t *addrlen, int flags, int timeout)
   }
   int subfd;
   for (;;) {
-    subfd = accept4(fd, addr, addrlen, flags);
+    subfd = accept4(fd, addr, addrlen, flags | SOCK_NONBLOCK);
     if (subfd >= 0) {
       break;
     }
