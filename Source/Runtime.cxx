@@ -12,15 +12,20 @@
 #include "Log.hxx"
 #include "Scheduler.hxx"
 
+#define CHECK_THE_SCHEDULER              \
+  do {                                   \
+    if (TheScheduler == nullptr) {       \
+      TARA_FATALITY_LOG("No scheduler"); \
+    }                                    \
+  } while (false)
+
 namespace Tara {
 
 extern thread_local Scheduler *const TheScheduler;
 
 void Call(const Coroutine &coroutine)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (coroutine != nullptr) {
     TheScheduler->callCoroutine(coroutine);
   }
@@ -28,9 +33,7 @@ void Call(const Coroutine &coroutine)
 
 void Call(Coroutine &&coroutine)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (coroutine != nullptr) {
     TheScheduler->callCoroutine(std::move(coroutine));
   }
@@ -38,33 +41,25 @@ void Call(Coroutine &&coroutine)
 
 void Yield()
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   TheScheduler->yieldCurrentFiber();
 }
 
 void Sleep(int duration)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   TheScheduler->sleepCurrentFiber(duration);
 }
 
 void Exit()
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   TheScheduler->exitCurrentFiber();
 }
 
 int Open(const char *path, int flags, mode_t mode)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   int fd;
   do {
     fd = open(path, flags | O_NONBLOCK, mode);
@@ -81,9 +76,7 @@ int Open(const char *path, int flags, mode_t mode)
 
 int Pipe2(int *fds, int flags)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (pipe2(fds, flags | O_NONBLOCK) < 0) {
     return -1;
   }
@@ -94,9 +87,7 @@ int Pipe2(int *fds, int flags)
 
 int Socket(int domain, int type, int protocol)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   int fd = socket(domain, type | SOCK_NONBLOCK, protocol);
   if (fd < 0) {
     return -1;
@@ -107,9 +98,7 @@ int Socket(int domain, int type, int protocol)
 
 int Close(int fd)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -131,9 +120,7 @@ int Close(int fd)
 
 ssize_t Read(int fd, void *buf, size_t buflen, int timeout)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -163,9 +150,7 @@ ssize_t Read(int fd, void *buf, size_t buflen, int timeout)
 
 ssize_t Write(int fd, const void *buf, size_t buflen, int timeout)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -195,9 +180,7 @@ ssize_t Write(int fd, const void *buf, size_t buflen, int timeout)
 
 int Accept4(int fd, sockaddr *addr, socklen_t *addrlen, int flags, int timeout)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -222,14 +205,13 @@ int Accept4(int fd, sockaddr *addr, socklen_t *addrlen, int flags, int timeout)
   if (subfd < 0) {
     return -1;
   }
+  TheScheduler->watchIO(subfd);
   return subfd;
 }
 
 int Connect(int fd, const sockaddr *addr, socklen_t addrlen, int timeout)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -256,9 +238,7 @@ int Connect(int fd, const sockaddr *addr, socklen_t addrlen, int timeout)
 
 ssize_t Recv(int fd, void *buf, size_t buflen, int flags, int timeout)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -288,9 +268,7 @@ ssize_t Recv(int fd, void *buf, size_t buflen, int flags, int timeout)
 
 ssize_t Send(int fd, const void *buf, size_t buflen, int flags, int timeout)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -321,9 +299,7 @@ ssize_t Send(int fd, const void *buf, size_t buflen, int flags, int timeout)
 ssize_t RecvFrom(int fd, void *buf, size_t buflen, int flags, sockaddr *addr,
                  socklen_t *addrlen, int timeout)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -354,9 +330,7 @@ ssize_t RecvFrom(int fd, void *buf, size_t buflen, int flags, sockaddr *addr,
 ssize_t SendTo(int fd, const void *buf, size_t buflen, int flags,
                const sockaddr *addr, socklen_t addrlen, int timeout)
 {
-  if (TheScheduler == nullptr) {
-    TARA_FATALITY_LOG("No scheduler");
-  }
+  CHECK_THE_SCHEDULER;
   if (!TheScheduler->ioIsWatched(fd)) {
     errno = EBADF;
     return -1;
@@ -379,6 +353,102 @@ ssize_t SendTo(int fd, const void *buf, size_t buflen, int flags,
     break;
   }
   if (n < 0) {
+    return -1;
+  }
+  return n;
+}
+
+int OpenAsync(const char *path, int flags, mode_t mode)
+{
+  CHECK_THE_SCHEDULER;
+  int fd;
+  int errorNumber = 0;
+  Task task([&path, &flags, &mode, &fd, &errorNumber] {
+    do {
+      fd = open(path, flags & ~O_NONBLOCK, mode);
+      if (fd >= 0) {
+        break;
+      }
+    } while (errno == EINTR);
+    if (fd < 0) {
+      errorNumber = errno;
+    }
+  });
+  TheScheduler->awaitTask(&task);
+  if (errorNumber != 0) {
+    errno = errorNumber;
+    return -1;
+  }
+  return fd;
+}
+
+int CloseAsync(int fd)
+{
+  CHECK_THE_SCHEDULER;
+  int result;
+  int errorNumber = 0;
+  Task task([&fd, &result, &errorNumber] {
+    do {
+      result = close(fd);
+      if (result >= 0) {
+        break;
+      }
+    } while (errno == EINTR);
+    if (result < 0) {
+      errorNumber = errno;
+    }
+  });
+  TheScheduler->awaitTask(&task);
+  if (errorNumber != 0) {
+    errno = errorNumber;
+    return -1;
+  }
+  return result;
+}
+
+ssize_t ReadAsync(int fd, void *buf, size_t buflen)
+{
+  CHECK_THE_SCHEDULER;
+  ssize_t n;
+  int errorNumber = 0;
+  Task task([&fd, &buf, &buflen, &n, &errorNumber] {
+    do {
+      n = read(fd, buf, buflen);
+      if (n >= 0) {
+        break;
+      }
+    } while (errno == EINTR);
+    if (n < 0) {
+      errorNumber = errno;
+    }
+  });
+  TheScheduler->awaitTask(&task);
+  if (errorNumber != 0) {
+    errno = errorNumber;
+    return -1;
+  }
+  return n;
+}
+
+ssize_t WriteAsync(int fd, const void *buf, size_t buflen)
+{
+  CHECK_THE_SCHEDULER;
+  ssize_t n;
+  int errorNumber = 0;
+  Task task([&fd, &buf, &buflen, &n, &errorNumber] {
+    do {
+      n = write(fd, buf, buflen);
+      if (n >= 0) {
+        break;
+      }
+    } while (errno == EINTR);
+    if (n < 0) {
+      errorNumber = errno;
+    }
+  });
+  TheScheduler->awaitTask(&task);
+  if (errorNumber != 0) {
+    errno = errorNumber;
     return -1;
   }
   return n;
