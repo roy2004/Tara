@@ -47,7 +47,7 @@ int Main(int argc, char **argv) {
    * Eliminates "ERROR on binding: Address already in use" error.
    */
   optval = 1;
-  setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR,
+  setsockopt(listenfd, SOL_SOCKET, SO_REUSEPORT,
          (const void *)&optval , sizeof(int));
 
   /* build the server's internet address */
@@ -82,23 +82,27 @@ int Main(int argc, char **argv) {
     hostaddrp = inet_ntoa(clientaddr.sin_addr);
     if (hostaddrp == NULL)
       error("ERROR on inet_ntoa\n");
-    printf("server established connection with %s\n", hostaddrp);
+    // printf("server established connection with %s\n", hostaddrp);
 
     Tara::Call([connfd] {
         char buf[BUFSIZE]; /* message buffer */
         int n; /* message byte size */
 
         /* read: read input string from the client */
-        bzero(buf, BUFSIZE);
-        n = Tara::Read(connfd, buf, BUFSIZE, -1);
-        if (n < 0)
-          error("ERROR reading from socket");
-        printf("server received %d bytes: %s", n, buf);
+        for (;;) {
+          n = Tara::Read(connfd, buf, BUFSIZE, -1);
+          if (n < 0)
+            error("ERROR reading from socket");
+          // printf("server received %d bytes: %s", n, buf);
+          if (n == 0) {
+            break;
+          }
 
-        /* write: echo the input string back to the client */
-        n = Tara::Write(connfd, buf, strlen(buf), -1);
-        if (n < 0)
-          error("ERROR writing to socket");
+          /* write: echo the input string back to the client */
+          n = Tara::Write(connfd, buf, strlen(buf), -1);
+          if (n < 0)
+            error("ERROR writing to socket");
+        }
 
         Tara::Close(connfd);
     });

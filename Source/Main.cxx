@@ -6,17 +6,15 @@ thread_local Scheduler *TheScheduler;
 
 } // namespace Tara
 
-using namespace Tara;
-
-int Main(int argc, char **argv);
+int TaraMain(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
   int status = 0;
-  Scheduler scheduler;
-  TheScheduler = &scheduler;
+  Tara::Scheduler scheduler;
+  Tara::TheScheduler = &scheduler;
   scheduler.callCoroutine([argc, argv, &status] () {
-    status = Main(argc, argv);
+    status = TaraMain(argc, argv);
   });
   scheduler.run();
   return status;

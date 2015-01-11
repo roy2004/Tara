@@ -1,20 +1,36 @@
-BUILD_DIR = Build
-SOURCE_DIR = Source
-CPPFLAGS = -MMD -MT $@ -MF $(BUILD_DIR)/$*.d
+OBJECTS = Async.o \
+          Error.o \
+          IOPoll.o \
+          Log.o \
+          Main.o \
+          MemoryPool.o \
+          RunFiber.o \
+          Runtime.o \
+          Scheduler.o \
+          Timer.o
+
+CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d
 CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -Wno-sign-compare -Wno-invalid-offsetof
-LDFLAGS = -lpthread
 
-build: $(BUILD_DIR)/a.out
+all: Build/Library.a
 
-clean:
-	$(RM) $(BUILD_DIR)/*
+Build/Library.a: $(addprefix Build/, $(OBJECTS))
+	$(AR) rc $@ $^
 
 ifneq ($(MAKECMDGOALS), clean)
--include $(patsubst %.cxx, $(BUILD_DIR)/%.d, $(filter %.cxx, $(shell cat SourceList)))
+-include $(patsubst %.o, Build/%.d, $(OBJECTS))
 endif
 
-$(BUILD_DIR)/%.o: $(SOURCE_DIR)/%.cxx
+Build/%.o: Source/%.cxx
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/a.out: $(patsubst %.cxx, $(BUILD_DIR)/%.o, $(filter %.cxx, $(shell cat SourceList)))
-	$(CXX) $(LDFLAGS) -o $@ $^
+clean:
+	rm -f Build/*
+
+install: all
+	cp -T Build/Library.a /usr/local/lib/libtara.a
+	cp -r -T Include /usr/local/include/Tara
+
+uninstall:
+	rm -f /usr/local/lib/libtara.a
+	rm -r -f /usr/local/include/Tara
