@@ -51,8 +51,8 @@ public:
     Fatality
   };
 
-  static Level GetLevel() { return Level_; }
-  static void SetLevel(Level level) { Level_ = level; }
+  static Level GetLevel();
+  static void SetLevel(Level level);
 
   Log();
   ~Log();
