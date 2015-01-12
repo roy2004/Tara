@@ -1,6 +1,8 @@
 #include "Log.hxx"
 
 #include <stdio.h>
+#
+#include "Atomic.hxx"
 
 namespace Tara {
 
@@ -8,22 +10,14 @@ Log::Level Log::Level_(Level::Debugging);
 
 Log::Level Log::GetLevel()
 {
-  Level level;
-#if defined(__i386__) || defined(__x86_64__)
-  __asm__ __volatile__ ("sfence\n\tmovl %1, %0" : "=r"(level) : "m"(Level_));
-#else
-#error architecture not supported
-#endif
+  auto level = static_cast<Level>(0);
+  TARA_LOCK_XADD(Level_, level);
   return level;
 }
 
 void Log::SetLevel(Level level)
 {
-#if defined(__i386__) || defined(__x86_64__)
-  __asm__ __volatile__ ("lfence\n\tmovl %1, %0" : "=m"(Level_) : "r"(level));
-#else
-#error architecture not supported
-#endif
+  TARA_LOCK_XCHG(Level_, level);
 }
 
 Log::Log()
