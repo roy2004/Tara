@@ -21,7 +21,7 @@ void Log::SetLevel(Level level)
 }
 
 Log::Log()
-  : outputStream_(std::ostringstream::ate)
+  : outputStream_("Tara: ", std::ostringstream::ate)
 {}
 
 Log::~Log()

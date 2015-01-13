@@ -30,7 +30,7 @@ const uint32_t IOEventFlags[] = {
   [static_cast<int>(IOEvent::Writability)] = EPOLLOUT
 };
 
-uint32_t NextPowerOfTwo(uint32_t value);
+uint32_t NextPowerOfTwo(uint32_t number);
 
 int xepoll_create1(int flags);
 void xepoll_ctl(int epfd, int op, int fd, epoll_event *event);
@@ -39,7 +39,7 @@ void xclose(int fd);
 } // namespace
 
 IOPoll::IOPoll()
-  : fd_(xepoll_create1(0)), watcherMemoryPool_(65536, sizeof(IOWatcher))
+  : fd_(xepoll_create1(0)), watcherMemoryPool_(sizeof(IOWatcher), 1024)
 {
   QUEUE_INIT(&dirtyWatcherQueue_);
 }
@@ -200,16 +200,16 @@ IOWatcher::IOWatcher(int fd)
 
 namespace {
 
-uint32_t NextPowerOfTwo(uint32_t value)
+uint32_t NextPowerOfTwo(uint32_t number)
 {
-  --value;
-  value |= value >> 1;
-  value |= value >> 2;
-  value |= value >> 4;
-  value |= value >> 8;
-  value |= value >> 16;
-  ++value;
-  return value;
+  --number;
+  number |= number >> 1;
+  number |= number >> 2;
+  number |= number >> 4;
+  number |= number >> 8;
+  number |= number >> 16;
+  ++number;
+  return number;
 }
 
 int xepoll_create1(int flags)

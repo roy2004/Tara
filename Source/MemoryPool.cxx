@@ -1,17 +1,23 @@
 #include "MemoryPool.hxx"
 
+#include <unistd.h>
+#
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #
+#include "Error.hxx"
 #include "Log.hxx"
 
 namespace Tara {
 
-union MemoryChunk
-{
-  char base[];
-};
+namespace {
+
+size_t NextPageAlignedSize(size_t size);
+
+long xsysconf(int name);
+
+} // namespace
 
 union MemoryBlock
 {
@@ -21,13 +27,19 @@ union MemoryBlock
   };
 };
 
-MemoryPool::MemoryPool(size_t chunkSize, size_t blockSize)
-  : chunkSize_(chunkSize), blockSize_(blockSize), chunkVector_(nullptr),
-    chunkVectorLength_(0), chunkCount_(0), lastBlock_(nullptr)
+union MemoryChunk
 {
-  assert(chunkSize_ != 0);
+  char base[];
+};
+
+MemoryPool::MemoryPool(size_t blockSize, unsigned int chunkLength)
+  : blockSize_(blockSize),
+    chunkSize_(NextPageAlignedSize(chunkLength * blockSize)),
+    lastBlock_(nullptr), chunkVector_(nullptr), chunkVectorLength_(0),
+    chunkCount_(0)
+{
   assert(blockSize_ != 0);
-  assert(chunkSize_ >= blockSize_);
+  assert(chunkSize_ != 0);
 }
 
 MemoryPool::~MemoryPool()
@@ -97,5 +109,26 @@ void MemoryPool::expandChunkVector()
     TARA_FATALITY_LOG("realloc failed");
   }
 }
+
+namespace {
+
+size_t NextPageAlignedSize(size_t size)
+{
+  --size;
+  size |= xsysconf(_SC_PAGE_SIZE) - 1;
+  ++size;
+  return size;
+}
+
+long xsysconf(int name)
+{
+  long result = sysconf(name);
+  if (result < 0) {
+    TARA_FATALITY_LOG("sysconf failed: ", Error(errno));
+  }
+  return result;
+}
+
+} // namespace
 
 } // namespace Tara
