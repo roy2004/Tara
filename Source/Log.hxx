@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #
 #include <sstream>
-#
-#include "Utility.hxx"
 
 #define TARA_LOG(LEVEL, ...)                                              \
   do {                                                                    \
@@ -39,7 +37,8 @@ namespace Tara {
 
 class Log final
 {
-  TARA_DISALLOW_COPY(Log);
+  Log(const Log &other) = delete;
+  void operator=(const Log &other) = delete;
 
 public:
   enum class Level

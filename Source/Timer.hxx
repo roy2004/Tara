@@ -1,8 +1,6 @@
 #pragma once
 
 #include "libuv/heap-inl.h"
-#
-#include "Utility.hxx"
 
 namespace Tara {
 
@@ -10,7 +8,8 @@ struct TimerItem;
 
 class Timer final
 {
-  TARA_DISALLOW_COPY(Timer);
+  Timer(const Timer &other) = delete;
+  void operator=(const Timer &other) = delete;
 
 public:
   Timer();

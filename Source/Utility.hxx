@@ -1,9 +1,5 @@
 #pragma once
 
-#define TARA_DISALLOW_COPY(TYPE) \
-  TYPE(const TYPE &) = delete;   \
-  void operator=(const TYPE &) = delete
-
 #define TARA_LENGTH_OF(ARRAY) \
   (sizeof (ARRAY) / sizeof *(ARRAY))
 

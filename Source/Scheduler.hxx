@@ -9,7 +9,6 @@
 #include "Coroutine.hxx"
 #include "IOPoll.hxx"
 #include "Timer.hxx"
-#include "Utility.hxx"
 
 namespace Tara {
 
@@ -18,7 +17,8 @@ enum class IOEvent;
 
 class Scheduler final
 {
-  TARA_DISALLOW_COPY(Scheduler);
+  Scheduler(const Scheduler &other) = delete;
+  void operator=(const Scheduler &other) = delete;
 
 public:
   Scheduler();

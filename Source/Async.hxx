@@ -5,8 +5,6 @@
 #include <functional>
 #
 #include "libuv/queue.h"
-#
-#include "Utility.hxx"
 
 namespace Tara {
 
@@ -16,7 +14,8 @@ using Task = std::function<void ()>;
 
 class Async final
 {
-  TARA_DISALLOW_COPY(Async);
+  Async(const Async &other) = delete;
+  void operator=(const Async &other) = delete;
 
 public:
   explicit Async(Scheduler *scheduler);

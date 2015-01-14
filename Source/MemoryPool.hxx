@@ -1,8 +1,6 @@
 #pragma once
 
 #include <stddef.h>
-#
-#include "Utility.hxx"
 
 namespace Tara {
 
@@ -11,7 +9,8 @@ union MemoryChunk;
 
 class MemoryPool final
 {
-  TARA_DISALLOW_COPY(MemoryPool);
+  MemoryPool(const MemoryPool &other) = delete;
+  void operator=(const MemoryPool &other) = delete;
 
 public:
   MemoryPool(size_t blockSize, unsigned int chunkLength);

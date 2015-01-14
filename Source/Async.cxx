@@ -11,6 +11,7 @@
 #include "IOEvent.hxx"
 #include "Log.hxx"
 #include "Scheduler.hxx"
+#include "Utility.hxx"
 
 namespace Tara {
 

@@ -1,14 +1,13 @@
 #pragma once
 
 #include <ostream>
-#
-#include "Utility.hxx"
 
 namespace Tara {
 
 class Error final
 {
-  TARA_DISALLOW_COPY(Error);
+  Error(const Error &other) = delete;
+  void operator=(const Error &other) = delete;
 
 public:
   explicit Error(int number);

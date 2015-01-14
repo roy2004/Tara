@@ -8,6 +8,7 @@
 #include "Log.hxx"
 #include "RunFiber.hxx"
 #include "TimerItem.hxx"
+#include "Utility.hxx"
 
 #define TARA_FIBER_SIZE 65536
 

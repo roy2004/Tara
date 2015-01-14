@@ -8,6 +8,7 @@
 #
 #include "Error.hxx"
 #include "Log.hxx"
+#include "Utility.hxx"
 
 namespace Tara {
 

@@ -9,6 +9,7 @@
 #include "Error.hxx"
 #include "IOEvent.hxx"
 #include "Log.hxx"
+#include "Utility.hxx"
 
 namespace Tara {
 

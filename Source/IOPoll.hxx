@@ -5,7 +5,6 @@
 #include "libuv/queue.h"
 #
 #include "MemoryPool.hxx"
-#include "Utility.hxx"
 
 namespace Tara {
 
@@ -14,7 +13,8 @@ struct IOWatcher;
 
 class IOPoll final
 {
-  TARA_DISALLOW_COPY(IOPoll);
+  IOPoll(const IOPoll &other) = delete;
+  void operator=(const IOPoll &other) = delete;
 
 public:
   IOPoll();
