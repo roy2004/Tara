@@ -4,6 +4,6 @@
 
 namespace Tara {
 
-using Coroutine = std::function<void ()>;
+typedef std::function<void ()> Coroutine;
 
 } // namespace Tara
