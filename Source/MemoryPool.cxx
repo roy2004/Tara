@@ -22,7 +22,7 @@ long xsysconf(int name);
 
 union MemoryBlock
 {
-  char base[];
+  unsigned char base[];
   struct {
     MemoryBlock *prev;
   };
@@ -30,7 +30,7 @@ union MemoryBlock
 
 union MemoryChunk
 {
-  char base[];
+  unsigned char base[];
 };
 
 MemoryPool::MemoryPool(size_t blockSize, unsigned int chunkLength)

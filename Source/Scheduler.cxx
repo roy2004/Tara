@@ -5,12 +5,16 @@
 #
 #include <utility>
 #
+#ifdef USE_VALGRIND
+#include <valgrind/valgrind.h>
+#endif
+#
 #include "Log.hxx"
 #include "RunFiber.hxx"
 #include "TimerItem.hxx"
 #include "Utility.hxx"
 
-#define TARA_FIBER_SIZE 65536
+#define TARA_REGION_SIZE 65536
 
 namespace Tara {
 
@@ -19,13 +23,18 @@ struct Fiber final
   QUEUE queueItem;
   TimerItem timerItem;
   const Coroutine coroutine;
-  void *const stack;
+  unsigned char *const stack;
+  const size_t stackSize;
+#ifdef USE_VALGRIND
+  const unsigned int stackID;
+#endif
   jmp_buf *context;
   int status;
   int fd;
 
-  Fiber(const Coroutine &coroutine, void *stack);
-  Fiber(Coroutine &&coroutine, void *stack);
+  Fiber(const Coroutine &coroutine, unsigned char *stack, size_t stackSize);
+  Fiber(Coroutine &&coroutine, unsigned char *stack, size_t stackSize);
+  ~Fiber();
 };
 
 namespace {
@@ -150,7 +159,7 @@ void Scheduler::executeFiber(Fiber *fiber)
   assert(fiber != nullptr);
   runningFiber_ = fiber;
   if (fiber->context == nullptr) {
-    RunFiber(FiberStart, this, fiber->stack);
+    RunFiber(FiberStart, this, fiber->stack, fiber->stackSize);
   }
   assert(fiber->status != 0);
   longjmp(*fiber->context, fiber->status);
@@ -279,48 +288,64 @@ void Scheduler::resumeFiber(Fiber *fiber)
   QUEUE_INSERT_TAIL(&readyFiberQueue_, &fiber->queueItem);
 }
 
-Fiber::Fiber(const Coroutine &coroutine, void *stack)
-  : coroutine(coroutine), stack(stack), context(nullptr), status(0), fd(-1)
+Fiber::Fiber(const Coroutine &coroutine, unsigned char *stack, size_t stackSize)
+  : coroutine(coroutine), stack(stack), stackSize(stackSize),
+#ifdef USE_VALGRIND
+    stackID(VALGRIND_STACK_REGISTER(stack, stack + stackSize)),
+#endif
+    context(nullptr), status(0), fd(-1)
 {
   assert(this->coroutine != nullptr);
   assert(this->stack != nullptr);
+  assert(this->stackSize != 0);
 }
 
-Fiber::Fiber(Coroutine &&coroutine, void *stack)
-  : coroutine(std::move(coroutine)), stack(stack), context(nullptr),
-    status(0), fd(-1)
+Fiber::Fiber(Coroutine &&coroutine, unsigned char *stack, size_t stackSize)
+  : coroutine(std::move(coroutine)), stack(stack), stackSize(stackSize),
+#ifdef USE_VALGRIND
+    stackID(VALGRIND_STACK_REGISTER(stack, stack + stackSize)),
+#endif
+    context(nullptr), status(0), fd(-1)
 {
   assert(this->coroutine != nullptr);
   assert(this->stack != nullptr);
+  assert(this->stackSize != 0);
+}
+
+Fiber::~Fiber()
+{
+#ifdef USE_VALGRIND
+  VALGRIND_STACK_DEREGISTER(this->stackID);
+#endif
 }
 
 namespace {
 
 Fiber *CreateFiber(const Coroutine &coroutine)
 {
-  auto region = static_cast<char *>(malloc(TARA_FIBER_SIZE));
+  auto region = static_cast<unsigned char *>(malloc(TARA_REGION_SIZE));
   if (region == nullptr) {
-    assert(TARA_FIBER_SIZE != 0);
+    assert(TARA_REGION_SIZE != 0);
     TARA_FATALITY_LOG("malloc failed");
   }
-  auto fiber = reinterpret_cast<Fiber *>(region + TARA_FIBER_SIZE
-                                                - sizeof(Fiber));
-  void *fiberStack = fiber;
-  static_cast<void>(new (fiber) Fiber(coroutine, fiberStack));
+  auto fiber = reinterpret_cast<Fiber *>(region + TARA_REGION_SIZE) - 1;
+  unsigned char *stack = region;
+  size_t stackSize = TARA_REGION_SIZE - sizeof *fiber;
+  static_cast<void>(new (fiber) Fiber(coroutine, stack, stackSize));
   return fiber;
 }
 
 Fiber *CreateFiber(Coroutine &&coroutine)
 {
-  auto region = static_cast<char *>(malloc(TARA_FIBER_SIZE));
+  auto region = static_cast<unsigned char *>(malloc(TARA_REGION_SIZE));
   if (region == nullptr) {
-    assert(TARA_FIBER_SIZE != 0);
+    assert(TARA_REGION_SIZE != 0);
     TARA_FATALITY_LOG("malloc failed");
   }
-  auto fiber = reinterpret_cast<Fiber *>(region + TARA_FIBER_SIZE
-                                                - sizeof(Fiber));
-  void *fiberStack = fiber;
-  static_cast<void>(new (fiber) Fiber(std::move(coroutine), fiberStack));
+  auto fiber = reinterpret_cast<Fiber *>(region + TARA_REGION_SIZE) - 1;
+  unsigned char *stack = region;
+  size_t stackSize = TARA_REGION_SIZE - sizeof *fiber;
+  static_cast<void>(new (fiber) Fiber(std::move(coroutine), stack, stackSize));
   return fiber;
 }
 
@@ -328,7 +353,7 @@ void DestroyFiber(Fiber *fiber)
 {
   assert(fiber != nullptr);
   fiber->~Fiber();
-  auto region = reinterpret_cast<char *>(fiber + 1) - TARA_FIBER_SIZE;
+  auto region = reinterpret_cast<unsigned char *>(fiber + 1) - TARA_REGION_SIZE;
   free(region);
 }
 

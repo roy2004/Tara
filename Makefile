@@ -9,8 +9,8 @@ OBJECTS = Async.o \
           Scheduler.o \
           Timer.o
 
-CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d
-CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -Wno-sign-compare -Wno-invalid-offsetof
+CPPFLAGS = -DUSE_VALGRIND -iquote Include -MMD -MT $@ -MF Build/$*.d
+CXXFLAGS = -std=c++11 -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Werror
 
 all: Build/Library.a
 
