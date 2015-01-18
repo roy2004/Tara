@@ -16,4 +16,6 @@ TaraRunFiber:               \
 \n\tjmpq *%rsi              \
 ");
 
+#else
+#error architecture not supported
 #endif

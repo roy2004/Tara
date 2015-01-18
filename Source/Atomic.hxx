@@ -1,22 +1,42 @@
 #pragma once
 
-#if defined(__i386__) || defined(__x86_64__)
+namespace Tara {
 
-#define TARA_LOCK_XADD(LHS1, LHS2) \
-  __asm__ __volatile__ ("lock xadd %1, %0" : "+m"(LHS1), "+r"(LHS2))
-  // LHS1 <-> LHS2
-  // LHS1 <- LHS1 + LHS2
+#if defined __i386__ || defined __x86_64__
 
-#define TARA_LOCK_XCHG(LHS1, LHS2) \
-  __asm__ __volatile__ ("lock xchg %1, %0" : "+m"(LHS1), "+r"(LHS2))
-  // LHS1 <-> LHS2
+template<typename TYPE>
+void Exchange(TYPE &lvalue1, TYPE &lvalue2)
+{
+  __asm__ __volatile__ ("lock xchg %1, %0" : "+m"(lvalue1), "+r"(lvalue2));
+  // lvalue1 <-> lvalue2
+}
 
-#define TARA_LOCK_CMPXCHG(LHS1, LHS2, RHS3)                            \
-  __asm__ __volatile__ ("lock cmpxchg %2, %0" : "+m"(LHS1), "+a"(LHS2) \
-                                              : "r"(RHS3))
-  // if LHS1 = LHS2
-  //   LHS1 <- RHS3
+template<typename TYPE>
+void ExchangeAdd(TYPE &lvalue1, TYPE &lvalue2)
+{
+  __asm__ __volatile__ ("lock xadd %1, %0" : "+m"(lvalue1), "+r"(lvalue2));
+  // lvalue1 <-> lvalue2
+  // lvalue1 <- lvalue1 + lvalue2
+}
+
+template<typename TYPE>
+bool CompareExchange(TYPE &lvalue1, TYPE &lvalue2, const TYPE &rvalue3)
+{
+  unsigned char result;
+  __asm__ __volatile__ ("lock cmpxchg %3, %0\n\t"
+                        "sete %2" : "+m"(lvalue1), "+a"(lvalue2), "=r"(result)
+                                  : "r"(rvalue3));
+  // if lvalue1 = lvalue2
+  //   lvalue1 <- rvalue3
+  //   result <- 1
   // else
-  //   LHS2 <- LHS1
+  //   lvalue2 <- lvalue1
+  //   result <- 0
+  return result;
+}
 
+#else
+#error architecture not supported
 #endif
+
+} // namespace Tara

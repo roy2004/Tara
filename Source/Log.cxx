@@ -11,13 +11,13 @@ Log::Level Log::Level_(Level::Debugging);
 Log::Level Log::GetLevel()
 {
   auto level = static_cast<Level>(0);
-  TARA_LOCK_XADD(Level_, level);
+  ExchangeAdd(Level_, level);
   return level;
 }
 
 void Log::SetLevel(Level level)
 {
-  TARA_LOCK_XCHG(Level_, level);
+  Exchange(Level_, level);
 }
 
 Log::Log()
