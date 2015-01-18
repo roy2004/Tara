@@ -9,13 +9,14 @@ OBJECTS = Async.o \
           Scheduler.o \
           Timer.o
 
-override CPPFLAGS += -iquote Include -MMD -MT $@ -MF Build/$*.d
-override CXXFLAGS += -std=c++11 -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Werror
+CPPFLAGS = -iquote Include -MMD -MT $@ -MF Build/$*.d
+CXXFLAGS = -std=c++11 -Wall -Wextra -Wno-sign-compare -Wno-invalid-offsetof -Werror
+ARFLAGS = rc
 
 all: Build/Library.a
 
 Build/Library.a: $(addprefix Build/, $(OBJECTS))
-	$(AR) rc $@ $^
+	$(AR) $(ARFLAGS) $@ $^
 
 ifneq ($(MAKECMDGOALS), clean)
 -include $(patsubst %.o, Build/%.d, $(OBJECTS))

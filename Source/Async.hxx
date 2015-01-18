@@ -10,7 +10,7 @@ namespace Tara {
 
 class Scheduler;
 
-using Task = std::function<void ()>;
+typedef std::function<void ()> Task;
 
 class Async final
 {

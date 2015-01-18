@@ -5,14 +5,14 @@ namespace Tara {
 #if defined __i386__ || defined __x86_64__
 
 template<typename TYPE>
-void Exchange(TYPE &lvalue1, TYPE &lvalue2)
+inline void Exchange(TYPE &lvalue1, TYPE &lvalue2)
 {
   __asm__ __volatile__ ("lock xchg %1, %0" : "+m"(lvalue1), "+r"(lvalue2));
   // lvalue1 <-> lvalue2
 }
 
 template<typename TYPE>
-void ExchangeAdd(TYPE &lvalue1, TYPE &lvalue2)
+inline void ExchangeAdd(TYPE &lvalue1, TYPE &lvalue2)
 {
   __asm__ __volatile__ ("lock xadd %1, %0" : "+m"(lvalue1), "+r"(lvalue2));
   // lvalue1 <-> lvalue2
@@ -20,7 +20,7 @@ void ExchangeAdd(TYPE &lvalue1, TYPE &lvalue2)
 }
 
 template<typename TYPE>
-bool CompareExchange(TYPE &lvalue1, TYPE &lvalue2, const TYPE &rvalue3)
+inline bool CompareExchange(TYPE &lvalue1, TYPE &lvalue2, const TYPE &rvalue3)
 {
   unsigned char result;
   __asm__ __volatile__ ("lock cmpxchg %3, %0\n\t"
