@@ -22,9 +22,9 @@ inline void ExchangeAdd(TYPE &lvalue1, TYPE &lvalue2)
 template<typename TYPE>
 inline bool CompareExchange(TYPE &lvalue1, TYPE &lvalue2, const TYPE &rvalue3)
 {
-  int result;
+  char result;
   __asm__ __volatile__ ("lock cmpxchg %3, %0\n\t"
-                        "sete %2" : "+m"(lvalue1), "+a"(lvalue2), "=r"(result)
+                        "sete %2" : "+m"(lvalue1), "+a"(lvalue2), "=m"(result)
                                   : "r"(rvalue3));
   // if lvalue1 = lvalue2
   //   lvalue1 <- rvalue3
